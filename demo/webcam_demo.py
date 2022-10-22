@@ -6,6 +6,7 @@ import os
 import time
 import sys
 
+
 basedir = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(basedir, os.path.pardir)))
 from tracker import re3_tracker

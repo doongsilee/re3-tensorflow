@@ -26,19 +26,21 @@ from constants import MAX_TRACK_LENGTH
 
 SPEED_OUTPUT = True
 
+tf.compat.v1.disable_eager_execution()
+
 class Re3Tracker(object):
     def __init__(self, gpu_id=GPU_ID):
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
         basedir = os.path.dirname(__file__)
         tf.Graph().as_default()
-        self.imagePlaceholder = tf.placeholder(tf.uint8, shape=(None, CROP_SIZE, CROP_SIZE, 3))
-        self.prevLstmState = tuple([tf.placeholder(tf.float32, shape=(None, LSTM_SIZE)) for _ in range(4)])
-        self.batch_size = tf.placeholder(tf.int32, shape=())
+        self.imagePlaceholder = tf.compat.v1.placeholder(tf.uint8, shape=(None, CROP_SIZE, CROP_SIZE, 3))
+        self.prevLstmState = tuple([tf.compat.v1.placeholder(tf.float32, shape=(None, LSTM_SIZE)) for _ in range(4)])
+        self.batch_size = tf.compat.v1.placeholder(tf.int32, shape=())
         self.outputs, self.state1, self.state2 = network.inference(
                 self.imagePlaceholder, num_unrolls=1, batch_size=self.batch_size, train=False,
                 prevLstmState=self.prevLstmState)
         self.sess = tf_util.Session()
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
         ckpt = tf.train.get_checkpoint_state(os.path.join(basedir, '..', LOG_DIR, 'checkpoints'))
         if ckpt is None:
             raise IOError(
