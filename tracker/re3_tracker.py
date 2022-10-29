@@ -25,9 +25,14 @@ from constants import LOG_DIR
 from constants import GPU_ID
 from constants import MAX_TRACK_LENGTH
 
+import logging
+
 SPEED_OUTPUT = True
 
 tf.compat.v1.disable_eager_execution()
+
+logger = tf.get_logger()
+logger.setLevel(logging.ERROR)
 
 
 class Re3Tracker(object):
@@ -35,9 +40,9 @@ class Re3Tracker(object):
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
         basedir = os.path.dirname(__file__)
         tf.compat.v1.Graph().as_default()
-        self.imagePlaceholder = tf.compat.v1.placeholder(tf.uint8, shape=(None, CROP_SIZE, CROP_SIZE, 3))
+        self.imagePlaceholder = tf.compat.v1.placeholder(tf.uint8, shape=(None, CROP_SIZE, CROP_SIZE, 3), name='input')
         self.prevLstmState = tuple([tf.compat.v1.placeholder(tf.float32, shape=(None, LSTM_SIZE)) for _ in range(4)])
-        self.batch_size = tf.compat.v1.placeholder(tf.int32, shape=())
+        self.batch_size = tf.compat.v1.placeholder(tf.int32, shape=(), name='batch_size')
         self.outputs, self.state1, self.state2 = network.inference(
             self.imagePlaceholder, num_unrolls=1, batch_size=self.batch_size, train=False,
             prevLstmState=self.prevLstmState)
@@ -50,10 +55,6 @@ class Re3Tracker(object):
                  'Did you download the pretrained weights? '
                  'Download them here: http://bit.ly/2L5deYF and read the Model section of the Readme.'))
         tf_util.restore(self.sess, ckpt.model_checkpoint_path)
-
-        writer = tf.compat.v1.summary.FileWriter('.')
-        writer.add_graph(tf.compat.v1.get_default_graph())
-        writer.flush()
 
         self.tracked_data = {}
 
@@ -129,6 +130,12 @@ class Re3Tracker(object):
             print('Current image read speed: %.3f FPS' % (1 / (image_read_time)))
             print('Mean tracking speed:      %.3f FPS\n' % (self.total_forward_count / max(.00001, self.time)))
         return outputBox
+
+    def save_model(self):
+        tf.compat.v1.saved_model.simple_save(self.sess, "tf_saved_model/", inputs={'input': self.imagePlaceholder,
+                                                                                   'batch_size': self.batch_size, },
+                                             outputs={'output': self.outputs, 'state1': self.state1,
+                                                      'state2': self.state2})
 
     # unique_ids{list{string}}: A list of unique ids for the objects being tracked.
     # image{str or numpy array}: The current image or the path to the current image.
@@ -221,7 +228,7 @@ class Re3Tracker(object):
             self.time += (end_time - start_time - image_read_time)
         if SPEED_OUTPUT and self.total_forward_count % 100 == 0:
             print('Current tracking speed per object: %.3f FPS' % (
-                        len(unique_ids) / (end_time - start_time - image_read_time)))
+                    len(unique_ids) / (end_time - start_time - image_read_time)))
             print('Current tracking speed per frame:  %.3f FPS' % (1 / (end_time - start_time - image_read_time)))
             print('Current image read speed:          %.3f FPS' % (1 / (image_read_time)))
             print('Mean tracking speed per object:    %.3f FPS\n' % (self.total_forward_count / max(.00001, self.time)))
