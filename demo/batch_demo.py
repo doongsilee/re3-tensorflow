@@ -15,6 +15,7 @@ if not os.path.exists(os.path.join(basedir, 'data')):
 
 cv2.namedWindow('Image', cv2.WINDOW_NORMAL)
 cv2.resizeWindow('Image', 640, 480)
+
 tracker = re3_tracker.Re3Tracker()
 image_paths = sorted(glob.glob(os.path.join(
     os.path.dirname(__file__), 'data', '*.jpg')))

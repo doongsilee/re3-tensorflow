@@ -131,11 +131,24 @@ class Re3Tracker(object):
             print('Mean tracking speed:      %.3f FPS\n' % (self.total_forward_count / max(.00001, self.time)))
         return outputBox
 
+    def save_graph(self):
+        file_writer = tf.compat.v1.summary.FileWriter('logs', self.sess.graph)
+
     def save_model(self):
-        tf.compat.v1.saved_model.simple_save(self.sess, "tf_saved_model/", inputs={'input': self.imagePlaceholder,
-                                                                                   'batch_size': self.batch_size, },
-                                             outputs={'output': self.outputs, 'state1': self.state1,
-                                                      'state2': self.state2})
+        tf.compat.v1.saved_model.simple_save(self.sess, "saved_model/", inputs={'input': self.imagePlaceholder,
+                                                                                   'batch_size': self.batch_size,
+                                                                                   'prevLstmState0_0':
+                                                                                       self.prevLstmState[0],
+                                                                                   'prevLstmState0_1':
+                                                                                       self.prevLstmState[1],
+                                                                                   'prevLstmState1_0':
+                                                                                       self.prevLstmState[2],
+                                                                                   'prevLstmState1_1':
+                                                                                       self.prevLstmState[3],
+                                                                                   },
+                                             outputs={'output': self.outputs, 'lstmState0_0': self.state1[0],
+                                                      'lstmState0_1': self.state1[1], 'lstmState1_0': self.state2[0],
+                                                      'lstmState1_1': self.state2[1]})
 
     # unique_ids{list{string}}: A list of unique ids for the objects being tracked.
     # image{str or numpy array}: The current image or the path to the current image.
